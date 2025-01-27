@@ -39,9 +39,10 @@ impl FromStr for DepthRange {
 
         // ..n または ..=n の形式
         if s.starts_with("..") {
-            let end_num = parts[parts.len() - 1].parse::<usize>()
+            let end_num = parts[parts.len() - 1]
+                .parse::<usize>()
                 .map_err(|_| "Invalid end number".to_string())?;
-            
+
             return Ok(DepthRange {
                 start: Endpoint::Inclusive(0),
                 end: if end_inclusive {
@@ -54,9 +55,10 @@ impl FromStr for DepthRange {
 
         // n.. の形式（終端なし）
         if s.ends_with("..") {
-            let start_num = parts[0].parse::<usize>()
+            let start_num = parts[0]
+                .parse::<usize>()
                 .map_err(|_| "Invalid start number".to_string())?;
-            
+
             return Ok(DepthRange {
                 start: Endpoint::Inclusive(start_num),
                 end: Endpoint::Inclusive(usize::MAX),
@@ -65,9 +67,11 @@ impl FromStr for DepthRange {
 
         // n..m または n..=m の形式
         if parts.len() == 2 {
-            let start_num = parts[0].parse::<usize>()
+            let start_num = parts[0]
+                .parse::<usize>()
                 .map_err(|_| "Invalid start number".to_string())?;
-            let end_num = parts[1].parse::<usize>()
+            let end_num = parts[1]
+                .parse::<usize>()
                 .map_err(|_| "Invalid end number".to_string())?;
 
             if start_num > end_num {
@@ -103,6 +107,44 @@ impl DepthRange {
     }
 }
 
+/// 表示設定を管理する構造体
+#[derive(Debug, Clone)]
+pub struct DisplayConfig {
+    /// ノードの範囲情報を表示するかどうか
+    pub show_range: bool,
+    /// すべてのノードのテキストを表示するかどうか
+    pub show_all_text: bool,
+    /// 非トークンノードのテキストを表示するかどうか
+    pub show_node_text: bool,
+    /// トークンのテキストを表示するかどうか
+    pub show_token_text: bool,
+    /// ノードの種類（NodeまたはToken）を表示するかどうか
+    pub show_node_type: bool,
+}
+
+impl DisplayConfig {
+    /// 指定されたノードのテキストを表示するかどうかを判定する
+    pub fn should_show_text(&self, is_token: bool) -> bool {
+        if is_token {
+            self.show_token_text
+        } else {
+            self.show_all_text || self.show_node_text
+        }
+    }
+}
+
+impl From<&Cli> for DisplayConfig {
+    fn from(cli: &Cli) -> Self {
+        DisplayConfig {
+            show_range: !cli.hide_range,
+            show_all_text: cli.show_text,
+            show_node_text: cli.show_node_text,
+            show_token_text: !cli.hide_token_text,
+            show_node_type: cli.show_node_type,
+        }
+    }
+}
+
 /// SQLのCST（具象構文木）を表示するツール
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -114,7 +156,27 @@ pub struct Cli {
     /// 表示する木の深さ範囲（例: 3, 1..3, 1..=3, ..3, ..=3, 3..）
     #[arg(short, long, value_name = "DEPTH")]
     pub depth: Option<DepthRange>,
-} 
+
+    /// ノードの範囲情報を表示しない
+    #[arg(long, default_value = "false")]
+    pub hide_range: bool,
+
+    /// すべてのノードのテキストを表示する
+    #[arg(long, default_value = "false")]
+    pub show_text: bool,
+
+    /// 非トークンノードのテキストを表示する
+    #[arg(long, default_value = "false")]
+    pub show_node_text: bool,
+
+    /// トークンのテキストを表示しない
+    #[arg(long, default_value = "false")]
+    pub hide_token_text: bool,
+
+    /// ノードの種類（NodeまたはToken）を表示する
+    #[arg(long, default_value = "false")]
+    pub show_node_type: bool,
+}
 
 #[cfg(test)]
 mod tests {
@@ -124,5 +186,113 @@ mod tests {
     fn verify_cli() {
         use clap::CommandFactory;
         Cli::command().debug_assert()
+    }
+
+    mod depth_range_parse {
+        use super::*;
+
+        #[test]
+        fn test_single_number() {
+            let range: DepthRange = "3".parse().unwrap();
+            assert!(matches!(range.start, Endpoint::Inclusive(3)));
+            assert!(matches!(range.end, Endpoint::Inclusive(3)));
+        }
+
+        #[test]
+        fn test_exclusive_range() {
+            let range: DepthRange = "1..3".parse().unwrap();
+            assert!(matches!(range.start, Endpoint::Inclusive(1)));
+            assert!(matches!(range.end, Endpoint::Exclusive(3)));
+        }
+
+        #[test]
+        fn test_inclusive_range() {
+            let range: DepthRange = "1..=3".parse().unwrap();
+            assert!(matches!(range.start, Endpoint::Inclusive(1)));
+            assert!(matches!(range.end, Endpoint::Inclusive(3)));
+        }
+
+        #[test]
+        fn test_from_zero() {
+            let range: DepthRange = "..3".parse().unwrap();
+            assert!(matches!(range.start, Endpoint::Inclusive(0)));
+            assert!(matches!(range.end, Endpoint::Exclusive(3)));
+        }
+
+        #[test]
+        fn test_from_zero_inclusive() {
+            let range: DepthRange = "..=3".parse().unwrap();
+            assert!(matches!(range.start, Endpoint::Inclusive(0)));
+            assert!(matches!(range.end, Endpoint::Inclusive(3)));
+        }
+
+        #[test]
+        fn test_to_max() {
+            let range: DepthRange = "3..".parse().unwrap();
+            assert!(matches!(range.start, Endpoint::Inclusive(3)));
+            assert!(matches!(range.end, Endpoint::Inclusive(usize::MAX)));
+        }
+
+        #[test]
+        fn test_invalid_range() {
+            assert!("3...5".parse::<DepthRange>().is_err());
+            assert!("a".parse::<DepthRange>().is_err());
+            assert!("1,2".parse::<DepthRange>().is_err());
+        }
+
+        #[test]
+        fn test_invalid_start_greater_than_end() {
+            assert!("5..3".parse::<DepthRange>().is_err());
+            assert!("5..=3".parse::<DepthRange>().is_err());
+        }
+    }
+
+    mod depth_range_contains {
+        use super::*;
+
+        #[test]
+        fn test_single_number() {
+            let range: DepthRange = "3".parse().unwrap();
+            assert!(!range.contains(2));
+            assert!(range.contains(3));
+            assert!(!range.contains(4));
+        }
+
+        #[test]
+        fn test_exclusive_range() {
+            let range: DepthRange = "1..3".parse().unwrap();
+            assert!(!range.contains(0));
+            assert!(range.contains(1));
+            assert!(range.contains(2));
+            assert!(!range.contains(3));
+        }
+
+        #[test]
+        fn test_inclusive_range() {
+            let range: DepthRange = "1..=3".parse().unwrap();
+            assert!(!range.contains(0));
+            assert!(range.contains(1));
+            assert!(range.contains(2));
+            assert!(range.contains(3));
+            assert!(!range.contains(4));
+        }
+
+        #[test]
+        fn test_from_zero() {
+            let range: DepthRange = "..3".parse().unwrap();
+            assert!(range.contains(0));
+            assert!(range.contains(1));
+            assert!(range.contains(2));
+            assert!(!range.contains(3));
+        }
+
+        #[test]
+        fn test_to_max() {
+            let range: DepthRange = "3..".parse().unwrap();
+            assert!(!range.contains(2));
+            assert!(range.contains(3));
+            assert!(range.contains(100));
+            assert!(range.contains(usize::MAX));
+        }
     }
 }
