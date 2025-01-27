@@ -198,9 +198,9 @@ pub enum Commands {
 
     /// トークン列を表示
     Tokens {
-        /// トークンの範囲情報を表示する
-        #[arg(long, default_value = "true")]
-        show_range: bool,
+        /// トークンの範囲情報を表示しない
+        #[arg(long, default_value = "false")]
+        hide_range: bool,
 
         /// トークンのテキストを表示しない
         #[arg(long, default_value = "false")]

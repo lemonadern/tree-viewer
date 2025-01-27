@@ -76,7 +76,7 @@ fn write_tree(
     Ok(())
 }
 
-fn print_tokens(node: Node, show_range: bool, show_text: bool) {
+fn print_tokens(node: Node, hide_range: bool, show_text: bool) {
     let mut cursor = node.walk();
     
     // 深さ優先探索でトークンを列挙
@@ -84,7 +84,7 @@ fn print_tokens(node: Node, show_range: bool, show_text: bool) {
         let current_node = cursor.node();
         // トークンの場合は出力
         if current_node.child_count() == 0 {
-            if show_range {
+            if !hide_range {
                 print!("{}@{}", current_node.kind(), current_node.range());
             } else {
                 print!("{}", current_node.kind());
@@ -161,8 +161,8 @@ fn main() {
             let config = DisplayConfig::from(&command);
             print_tree(root_node, 0, &depth, &config);
         }
-        Commands::Tokens { show_range, hide_text } => {
-            print_tokens(root_node, show_range, !hide_text);
+        Commands::Tokens { hide_range, hide_text } => {
+            print_tokens(root_node, hide_range, !hide_text);
         }
     }
 }
