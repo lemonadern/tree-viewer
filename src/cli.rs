@@ -88,6 +88,21 @@ impl FromStr for DepthRange {
     }
 }
 
+impl DepthRange {
+    /// 指定された深さが範囲内かどうかを判定する
+    pub fn contains(&self, depth: usize) -> bool {
+        let start_ok = match self.start {
+            Endpoint::Inclusive(start) => depth >= start,
+            Endpoint::Exclusive(start) => depth > start,
+        };
+        let end_ok = match self.end {
+            Endpoint::Inclusive(end) => depth <= end,
+            Endpoint::Exclusive(end) => depth < end,
+        };
+        start_ok && end_ok
+    }
+}
+
 /// SQLのCST（具象構文木）を表示するツール
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

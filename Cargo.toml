@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.27", features = ["derive"] }
+postgresql-cst-parser = { git = "https://github.com/future-architect/postgresql-cst-parser", branch = "fix/fix-range-bug"}
