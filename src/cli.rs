@@ -210,7 +210,7 @@ pub enum Commands {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::cli::{Cli, DepthRange, Endpoint};
 
     #[test]
     fn verify_cli() {
