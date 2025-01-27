@@ -1,6 +1,7 @@
 mod cli;
 
 use clap::Parser;
+use cli::Commands;
 use cli::{Cli, DepthRange, DisplayConfig};
 use postgresql_cst_parser::tree_sitter::{parse, Node};
 use std::fs;
@@ -75,9 +76,43 @@ fn write_tree(
     Ok(())
 }
 
+fn print_tokens(node: Node, show_range: bool, show_text: bool) {
+    let mut cursor = node.walk();
+    
+    // 深さ優先探索でトークンを列挙
+    loop {
+        let current_node = cursor.node();
+        // トークンの場合は出力
+        if current_node.child_count() == 0 {
+            if show_range {
+                print!("{}@{}", current_node.kind(), current_node.range());
+            } else {
+                print!("{}", current_node.kind());
+            }
+            if show_text {
+                println!(" \"{}\"", current_node.text().escape_debug());
+            } else {
+                println!();
+            }
+        }
+
+        // 子ノードがあれば進む
+        if cursor.goto_first_child() {
+            continue;
+        }
+
+        // 次の兄弟ノードがあれば進む
+        while !cursor.goto_next_sibling() {
+            if !cursor.goto_parent() {
+                // ルートまで戻ってきたら終了
+                return;
+            }
+        }
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
-    let config = DisplayConfig::from(&cli);
 
     // SQLファイルの読み込み
     let sql = match fs::read_to_string(&cli.sql_file) {
@@ -97,7 +132,37 @@ fn main() {
         }
     };
 
-    // ルートノードから木を表示
     let root_node = tree.root_node();
-    print_tree(root_node, 0, &cli.depth, &config);
+
+    match cli.command.unwrap_or(Commands::Tree {
+        depth: None,
+        hide_range: false,
+        show_text: false,
+        show_node_text: false,
+        hide_token_text: false,
+        show_node_type: false,
+    }) {
+        Commands::Tree {
+            depth,
+            hide_range,
+            show_text,
+            show_node_text,
+            hide_token_text,
+            show_node_type,
+        } => {
+            let command = Commands::Tree {
+                depth: depth.clone(),
+                hide_range,
+                show_text,
+                show_node_text,
+                hide_token_text,
+                show_node_type,
+            };
+            let config = DisplayConfig::from(&command);
+            print_tree(root_node, 0, &depth, &config);
+        }
+        Commands::Tokens { show_range, hide_text } => {
+            print_tokens(root_node, show_range, !hide_text);
+        }
+    }
 }

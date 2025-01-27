@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -133,14 +133,24 @@ impl DisplayConfig {
     }
 }
 
-impl From<&Cli> for DisplayConfig {
-    fn from(cli: &Cli) -> Self {
-        DisplayConfig {
-            show_range: !cli.hide_range,
-            show_all_text: cli.show_text,
-            show_node_text: cli.show_node_text,
-            show_token_text: !cli.hide_token_text,
-            show_node_type: cli.show_node_type,
+impl From<&Commands> for DisplayConfig {
+    fn from(cmd: &Commands) -> Self {
+        match cmd {
+            Commands::Tree {
+                hide_range,
+                show_text,
+                show_node_text,
+                hide_token_text,
+                show_node_type,
+                ..
+            } => DisplayConfig {
+                show_range: !hide_range,
+                show_all_text: *show_text,
+                show_node_text: *show_node_text,
+                show_token_text: !hide_token_text,
+                show_node_type: *show_node_type,
+            },
+            Commands::Tokens { .. } => unreachable!(),
         }
     }
 }
@@ -149,33 +159,53 @@ impl From<&Cli> for DisplayConfig {
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+
     /// 解析するSQLファイルのパス
     #[arg(value_name = "FILE")]
     pub sql_file: PathBuf,
+}
 
-    /// 表示する木の深さ範囲（例: 3, 1..3, 1..=3, ..3, ..=3, 3..）
-    #[arg(short, long, value_name = "DEPTH")]
-    pub depth: Option<DepthRange>,
+#[derive(Subcommand)]
+pub enum Commands {
+    /// CST（具象構文木）を表示
+    Tree {
+        /// 表示する木の深さ範囲（例: 3, 1..3, 1..=3, ..3, ..=3, 3..）
+        #[arg(short, long, value_name = "DEPTH")]
+        depth: Option<DepthRange>,
 
-    /// ノードの範囲情報を表示しない
-    #[arg(long, default_value = "false")]
-    pub hide_range: bool,
+        /// ノードの範囲情報を表示しない
+        #[arg(long, default_value = "false")]
+        hide_range: bool,
 
-    /// すべてのノードのテキストを表示する
-    #[arg(long, default_value = "false")]
-    pub show_text: bool,
+        /// すべてのノードのテキストを表示する
+        #[arg(long, default_value = "false")]
+        show_text: bool,
 
-    /// 非トークンノードのテキストを表示する
-    #[arg(long, default_value = "false")]
-    pub show_node_text: bool,
+        /// 非トークンノードのテキストを表示する
+        #[arg(long, default_value = "false")]
+        show_node_text: bool,
 
-    /// トークンのテキストを表示しない
-    #[arg(long, default_value = "false")]
-    pub hide_token_text: bool,
+        /// トークンのテキストを表示しない
+        #[arg(long, default_value = "false")]
+        hide_token_text: bool,
 
-    /// ノードの種類（NodeまたはToken）を表示する
-    #[arg(long, default_value = "false")]
-    pub show_node_type: bool,
+        /// ノードの種類（NodeまたはToken）を表示する
+        #[arg(long, default_value = "false")]
+        show_node_type: bool,
+    },
+
+    /// トークン列を表示
+    Tokens {
+        /// トークンの範囲情報を表示する
+        #[arg(long, default_value = "true")]
+        show_range: bool,
+
+        /// トークンのテキストを表示しない
+        #[arg(long, default_value = "false")]
+        hide_text: bool,
+    },
 }
 
 #[cfg(test)]
