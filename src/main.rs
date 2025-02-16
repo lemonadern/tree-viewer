@@ -1,8 +1,7 @@
 mod cli;
 
 use clap::Parser;
-use cli::Commands;
-use cli::{Cli, DepthRange, DisplayConfig};
+use cli::{Commands, Cli, DepthRange, DisplayConfig, Endpoint};
 use postgresql_cst_parser::tree_sitter::{parse, Node};
 use std::fs;
 use std::process;
@@ -38,9 +37,26 @@ fn write_tree(
     let should_display = should_print(depth, range);
 
     if should_display {
+        // インデントの基準となる深さを取得
+        let base_depth = match range {
+            Some(range) => match range.start {
+                Endpoint::Inclusive(start) => start,
+                Endpoint::Exclusive(start) => start + 1,
+            },
+            None => 0,
+        };
+
         // インデント
         if depth > 0 {
-            write!(output, "{}-+", "-".repeat((depth - 1) * INDENT_SIZE))?;
+            // 基準深さからの相対的なインデントを計算
+            let relative_depth = if depth > base_depth {
+                depth - base_depth
+            } else {
+                0
+            };
+            if relative_depth > 0 {
+                write!(output, "{}-+", "-".repeat((relative_depth - 1) * INDENT_SIZE))?;
+            }
         }
 
         // ノードの種類
