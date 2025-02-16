@@ -2,7 +2,7 @@ mod cli;
 
 use clap::Parser;
 use cli::{Commands, Cli, DepthRange, DisplayConfig, Endpoint};
-use postgresql_cst_parser::tree_sitter::{parse, Node};
+use postgresql_cst_parser::{tree_sitter::{parse, Node}, syntax_kind::SyntaxKind};
 use std::fs;
 use std::process;
 use std::fmt::Write;
@@ -37,6 +37,12 @@ fn write_tree(
     let should_display = should_print(depth, range);
 
     if should_display {
+        // 深さ1のStmtノードの前にSQL文を表示
+        if config.show_sql && depth == 1 && node.kind().to_string().ends_with("Stmt") {
+            let sql = node.text().replace('\n', "");
+            writeln!(output, "{}", sql.escape_debug())?;
+        }
+
         // インデントの基準となる深さを取得
         let base_depth = match range {
             Some(range) => match range.start {
@@ -77,6 +83,11 @@ fn write_tree(
         }
 
         writeln!(output)?;
+
+        // 深さ1のセミコロンノードの後に空行を入れる
+        if config.show_sql_separator && depth == 1 && node.kind() == SyntaxKind::Semicolon {
+            writeln!(output)?;
+        }
     }
 
     let mut cursor = node.walk();
@@ -157,6 +168,8 @@ fn main() {
         show_node_text: false,
         hide_token_text: false,
         show_node_type: false,
+        show_sql_separator: false,
+        show_sql: false,
     }) {
         Commands::Tree {
             depth,
@@ -165,6 +178,8 @@ fn main() {
             show_node_text,
             hide_token_text,
             show_node_type,
+            show_sql_separator,
+            show_sql,
         } => {
             let command = Commands::Tree {
                 depth: depth.clone(),
@@ -173,6 +188,8 @@ fn main() {
                 show_node_text,
                 hide_token_text,
                 show_node_type,
+                show_sql_separator,
+                show_sql,
             };
             let config = DisplayConfig::from(&command);
             print_tree(root_node, 0, &depth, &config);

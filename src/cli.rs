@@ -120,6 +120,10 @@ pub struct DisplayConfig {
     pub show_token_text: bool,
     /// ノードの種類（NodeまたはToken）を表示するかどうか
     pub show_node_type: bool,
+    /// SQL文の間に空行を表示するかどうか
+    pub show_sql_separator: bool,
+    /// 各ツリーの前にSQL文を表示するかどうか
+    pub show_sql: bool,
 }
 
 impl DisplayConfig {
@@ -142,6 +146,8 @@ impl From<&Commands> for DisplayConfig {
                 show_node_text,
                 hide_token_text,
                 show_node_type,
+                show_sql_separator,
+                show_sql,
                 ..
             } => DisplayConfig {
                 show_range: !hide_range,
@@ -149,6 +155,8 @@ impl From<&Commands> for DisplayConfig {
                 show_node_text: *show_node_text,
                 show_token_text: !hide_token_text,
                 show_node_type: *show_node_type,
+                show_sql_separator: *show_sql_separator,
+                show_sql: *show_sql,
             },
             Commands::Tokens { .. } => unreachable!(),
         }
@@ -194,6 +202,14 @@ pub enum Commands {
         /// ノードの種類（NodeまたはToken）を表示する
         #[arg(long, default_value = "false")]
         show_node_type: bool,
+
+        /// SQL文の間に空行を表示する
+        #[arg(long, default_value = "false")]
+        show_sql_separator: bool,
+
+        /// 各ツリーの前にSQL文を表示する
+        #[arg(long, default_value = "false")]
+        show_sql: bool,
     },
 
     /// トークン列を表示
