@@ -1,12 +1,15 @@
 mod cli;
 
 use clap::Parser;
-use cli::{Commands, Cli, DepthRange, DisplayConfig, Endpoint};
+use cli::{Cli, Commands, DepthRange, DisplayConfig, Endpoint};
 use console::style;
-use postgresql_cst_parser::{tree_sitter::{parse, Node}, syntax_kind::SyntaxKind};
+use postgresql_cst_parser::{
+    syntax_kind::SyntaxKind,
+    tree_sitter::{parse, Node},
+};
+use std::fmt::Write;
 use std::fs;
 use std::process;
-use std::fmt::Write;
 
 const INDENT_SIZE: usize = 2;
 
@@ -17,12 +20,7 @@ fn should_print(depth: usize, range: &Option<DepthRange>) -> bool {
     }
 }
 
-fn print_tree(
-    node: Node,
-    depth: usize,
-    range: &Option<DepthRange>,
-    config: &DisplayConfig,
-) {
+fn print_tree(node: Node, depth: usize, range: &Option<DepthRange>, config: &DisplayConfig) {
     let mut output = String::new();
     write_tree(node, depth, range, config, &mut output).expect("writing to string should not fail");
     print!("{}", output);
@@ -61,7 +59,11 @@ fn write_tree(
                 0
             };
             if relative_depth > 0 {
-                write!(output, "{}-+", "-".repeat((relative_depth - 1) * INDENT_SIZE))?;
+                write!(
+                    output,
+                    "{}-+",
+                    "-".repeat((relative_depth - 1) * INDENT_SIZE)
+                )?;
             }
         }
 
@@ -105,7 +107,7 @@ fn write_tree(
 
 fn print_tokens(node: Node, hide_range: bool, show_text: bool) {
     let mut cursor = node.walk();
-    
+
     // 深さ優先探索でトークンを列挙
     loop {
         let current_node = cursor.node();
@@ -194,7 +196,10 @@ fn main() {
             let config = DisplayConfig::from(&command);
             print_tree(root_node, 0, &depth, &config);
         }
-        Commands::Tokens { hide_range, hide_text } => {
+        Commands::Tokens {
+            hide_range,
+            hide_text,
+        } => {
             print_tokens(root_node, hide_range, !hide_text);
         }
     }
