@@ -2,6 +2,7 @@ mod cli;
 
 use clap::Parser;
 use cli::{Commands, Cli, DepthRange, DisplayConfig, Endpoint};
+use console::style;
 use postgresql_cst_parser::{tree_sitter::{parse, Node}, syntax_kind::SyntaxKind};
 use std::fs;
 use std::process;
@@ -40,7 +41,7 @@ fn write_tree(
         // 深さ1のStmtノードの前にSQL文を表示
         if config.show_sql && depth == 1 && node.kind().to_string().ends_with("Stmt") {
             let sql = node.text().replace('\n', "");
-            writeln!(output, "{}", sql.escape_debug())?;
+            writeln!(output, "{}", style(sql.escape_debug()).cyan().bold())?;
         }
 
         // インデントの基準となる深さを取得
