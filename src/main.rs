@@ -40,8 +40,7 @@ fn write_tree(
     if should_display {
         // 深さ1のStmtノードの前にSQL文を表示
         if config.show_sql && depth == 1 && node.kind().to_string().ends_with("Stmt") {
-            let sql = node.text().replace('\n', "");
-            writeln!(output, "{}", style(sql.escape_debug()).cyan().bold())?;
+            writeln!(output, "{}", style(node.text()).cyan().bold())?;
         }
 
         // インデントの基準となる深さを取得
