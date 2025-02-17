@@ -7,4 +7,4 @@ license = "Apache-2.0"
 [dependencies]
 clap = { version = "4.5.27", features = ["derive"] }
 console = "0.15.10"
-postgresql-cst-parser = { git = "https://github.com/future-architect/postgresql-cst-parser", branch = "fix/fix-range-bug"}
+postgresql-cst-parser = { git = "https://github.com/future-architect/postgresql-cst-parser" }
