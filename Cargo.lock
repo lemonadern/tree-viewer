@@ -288,7 +288,7 @@ dependencies = [
 [[package]]
 name = "postgresql-cst-parser"
 version = "0.1.0"
-source = "git+https://github.com/future-architect/postgresql-cst-parser#ec3c52ff2c631f57e435769458fedc996ecceb7a"
+source = "git+https://github.com/future-architect/postgresql-cst-parser#b436543ab1f9e5584c0363a8699199a0356fa790"
 dependencies = [
  "cstree",
  "miniz_oxide",
