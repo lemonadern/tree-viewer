@@ -5,7 +5,7 @@ use cli::{Cli, Commands, DepthRange, DisplayConfig, Endpoint};
 use console::style;
 use postgresql_cst_parser::{
     syntax_kind::SyntaxKind,
-    tree_sitter::{parse, Node},
+    tree_sitter::{parse_2way as parse, Node},
 };
 use std::fmt::Write;
 use std::fs;
