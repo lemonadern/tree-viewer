@@ -9,6 +9,7 @@ use postgresql_cst_parser::{
 };
 use std::fmt::Write;
 use std::fs;
+use std::io::{self, Read};
 use std::process;
 
 const INDENT_SIZE: usize = 2;
@@ -142,13 +143,24 @@ fn print_tokens(node: Node, hide_range: bool, show_text: bool) {
 
 fn main() {
     let cli = Cli::parse();
+    let Cli { command, sql_file } = cli;
 
     // SQLファイルの読み込み
-    let sql = match fs::read_to_string(&cli.sql_file) {
-        Ok(content) => content,
-        Err(err) => {
-            eprintln!("ファイルの読み込みに失敗しました: {}", err);
-            process::exit(1);
+    let sql = match sql_file {
+        Some(path) if path.as_os_str() != "-" => match fs::read_to_string(&path) {
+            Ok(content) => content,
+            Err(err) => {
+                eprintln!("ファイルの読み込みに失敗しました: {}", err);
+                process::exit(1);
+            }
+        },
+        _ => {
+            let mut buffer = String::new();
+            if let Err(err) = io::stdin().read_to_string(&mut buffer) {
+                eprintln!("標準入力の読み込みに失敗しました: {}", err);
+                process::exit(1);
+            }
+            buffer
         }
     };
 
@@ -163,7 +175,7 @@ fn main() {
 
     let root_node = tree.root_node();
 
-    match cli.command.unwrap_or(Commands::Tree {
+    match command.unwrap_or(Commands::Tree {
         depth: None,
         hide_range: false,
         show_text: false,

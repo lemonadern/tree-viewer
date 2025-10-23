@@ -170,9 +170,9 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
 
-    /// 解析するSQLファイルのパス
+    /// 解析するSQLファイルのパス（未指定、または「-」の場合は標準入力を使用）
     #[arg(value_name = "FILE")]
-    pub sql_file: PathBuf,
+    pub sql_file: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
