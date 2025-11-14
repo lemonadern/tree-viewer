@@ -174,6 +174,10 @@ pub struct Cli {
     #[arg(value_name = "FILE")]
     pub sql_file: Option<PathBuf>,
 
+    /// 直接SQL文字列を指定する（このオプションが指定された場合は、ファイルパスや標準入力よりも優先される）
+    #[arg(long, value_name = "SQL")]
+    pub sql: Option<String>,
+
     /// エラー回復機能を有効にする（エラーがあっても可能な限りパースを続行）
     #[arg(short = 'e', long, default_value = "false")]
     pub error_recovery: bool,

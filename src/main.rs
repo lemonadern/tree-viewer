@@ -142,26 +142,30 @@ fn main() {
     let Cli {
         command,
         sql_file,
+        sql,
         error_recovery,
     } = cli;
 
-    // SQLファイルの読み込み
-    let sql = match sql_file {
-        Some(path) if path.as_os_str() != "-" => match fs::read_to_string(&path) {
-            Ok(content) => content,
-            Err(err) => {
-                eprintln!("ファイルの読み込みに失敗しました: {}", err);
-                process::exit(1);
+    // SQLの取得（優先順位: --sql > ファイルパス > 標準入力）
+    let sql = match sql {
+        Some(sql_str) => sql_str,
+        None => match sql_file {
+            Some(path) if path.as_os_str() != "-" => match fs::read_to_string(&path) {
+                Ok(content) => content,
+                Err(err) => {
+                    eprintln!("ファイルの読み込みに失敗しました: {}", err);
+                    process::exit(1);
+                }
+            },
+            _ => {
+                let mut buffer = String::new();
+                if let Err(err) = io::stdin().read_to_string(&mut buffer) {
+                    eprintln!("標準入力の読み込みに失敗しました: {}", err);
+                    process::exit(1);
+                }
+                buffer
             }
         },
-        _ => {
-            let mut buffer = String::new();
-            if let Err(err) = io::stdin().read_to_string(&mut buffer) {
-                eprintln!("標準入力の読み込みに失敗しました: {}", err);
-                process::exit(1);
-            }
-            buffer
-        }
     };
 
     // SQLのパース
