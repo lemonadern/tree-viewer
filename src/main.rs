@@ -5,7 +5,7 @@ use cli::{Cli, Commands, DepthRange, DisplayConfig, Endpoint};
 use console::style;
 use postgresql_cst_parser::{
     syntax_kind::SyntaxKind,
-    tree_sitter::{parse, Node},
+    tree_sitter::{parse, parse_2way, Node},
 };
 use std::fmt::Write;
 use std::fs;
@@ -54,11 +54,7 @@ fn write_tree(
         // インデント
         if depth > 0 {
             // 基準深さからの相対的なインデントを計算
-            let relative_depth = if depth > base_depth {
-                depth - base_depth
-            } else {
-                0
-            };
+            let relative_depth = depth.saturating_sub(base_depth);
             if relative_depth > 0 {
                 write!(
                     output,
@@ -143,7 +139,11 @@ fn print_tokens(node: Node, hide_range: bool, show_text: bool) {
 
 fn main() {
     let cli = Cli::parse();
-    let Cli { command, sql_file } = cli;
+    let Cli {
+        command,
+        sql_file,
+        error_recovery,
+    } = cli;
 
     // SQLファイルの読み込み
     let sql = match sql_file {
@@ -165,11 +165,21 @@ fn main() {
     };
 
     // SQLのパース
-    let tree = match parse(&sql) {
-        Ok(tree) => tree,
-        Err(err) => {
-            eprintln!("SQLのパースに失敗しました: {:?}", err);
-            process::exit(1);
+    let tree = if error_recovery {
+        match parse_2way(&sql) {
+            Ok(tree) => tree,
+            Err(err) => {
+                eprintln!("SQLのパースに失敗しました: {:?}", err);
+                process::exit(1);
+            }
+        }
+    } else {
+        match parse(&sql) {
+            Ok(tree) => tree,
+            Err(err) => {
+                eprintln!("SQLのパースに失敗しました: {:?}", err);
+                process::exit(1);
+            }
         }
     };
 

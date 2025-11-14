@@ -173,6 +173,10 @@ pub struct Cli {
     /// 解析するSQLファイルのパス（未指定、または「-」の場合は標準入力を使用）
     #[arg(value_name = "FILE")]
     pub sql_file: Option<PathBuf>,
+
+    /// エラー回復機能を有効にする（エラーがあっても可能な限りパースを続行）
+    #[arg(short = 'e', long, default_value = "false")]
+    pub error_recovery: bool,
 }
 
 #[derive(Subcommand)]
